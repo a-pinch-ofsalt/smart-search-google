@@ -8,13 +8,14 @@ dotenv.config();
 const app = express();
 app.use(express.json());
 
+// OAuth2 Client setup
 const oAuth2Client = new OAuth2Client(
   process.env.CLIENT_ID,
   process.env.CLIENT_SECRET,
-  process.env.REDIRECT_URI || 'https://smart-search-google.vercel.app/oauth2callback'
+  process.env.REDIRECT_URI || 'https://your-vercel-app.vercel.app/oauth2callback'
 );
 
-// Get refresh token or access token from Vercel’s environment variables (or database)
+// Get refresh token or access token from environment variables (or database)
 async function getStoredTokens() {
   const tokens = {
     access_token: process.env.ACCESS_TOKEN,
@@ -37,28 +38,11 @@ async function refreshAccessToken(refreshToken) {
   }
 }
 
-// Fetch questions from Google Sheets
-async function getQuestionsFromSheet(accessToken) {
-  const sheetId = 'YOUR_GOOGLE_SHEET_ID';
-  const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/Sheet1!A1:A5`;
-  
-  const response = await fetch(url, {
-    method: 'GET',
-    headers: {
-      'Authorization': `Bearer ${accessToken}`
-    }
-  });
-  
-  const data = await response.json();
-  return data.values || [];
-}
-
-// Function to call Vertex AI with a list of questions
-async function askVertexAI(accessToken, questions) {
+// Function to call Vertex AI
+async function askVertexAI(accessToken, question) {
   const url = `https://${process.env.LOCATION}-aiplatform.googleapis.com/v1beta1/projects/${process.env.PROJECT_ID}/locations/${process.env.LOCATION}/publishers/google/models/${process.env.MODEL_ID}:generateContent`;
 
-  const responses = [];
-  for (let question of questions) {
+  try {
     const response = await fetch(url, {
       method: 'POST',
       headers: {
@@ -70,11 +54,18 @@ async function askVertexAI(accessToken, questions) {
         tools: [{ googleSearchRetrieval: { dynamicRetrievalConfig: { mode: "MODE_DYNAMIC", dynamicThreshold: 0.7 } } }]
       })
     });
+
+    if (!response.ok) {
+      const errorMessage = await response.text();
+      throw new Error(`API error: ${errorMessage}`);
+    }
+
     const data = await response.json();
-    responses.push(data.candidates[0]?.content?.parts[0]?.text || "No response");
+    return data.candidates[0]?.content?.parts[0]?.text || "No response";
+  } catch (error) {
+    console.error("Error processing request:", error);
+    throw new Error(`Failed to process the request: ${error.message}`);
   }
-  
-  return responses;
 }
 
 // OAuth2 callback route to get access token
@@ -90,7 +81,16 @@ app.get('/oauth2callback', async (req, res) => {
   }
 });
 
-// POST route to answer questions
+// Route to start OAuth process
+app.get('/auth', (req, res) => {
+  const authUrl = oAuth2Client.generateAuthUrl({
+    access_type: 'offline',
+    scope: ['https://www.googleapis.com/auth/cloud-platform']
+  });
+  res.redirect(authUrl);
+});
+
+// POST route to handle user questions
 app.post('/ask', async (req, res) => {
   try {
     let tokens = await getStoredTokens();
@@ -100,10 +100,9 @@ app.post('/ask', async (req, res) => {
       tokens.access_token = await refreshAccessToken(tokens.refresh_token);
     }
     
-    const questions = await getQuestionsFromSheet(tokens.access_token);
-    const answers = await askVertexAI(tokens.access_token, questions);
+    const answer = await askVertexAI(tokens.access_token, req.body.question);
     
-    res.status(200).json({ answers });
+    res.status(200).json({ answer });
   } catch (error) {
     res.status(500).json({ error: `Failed to process the request: ${error.message}` });
   }
