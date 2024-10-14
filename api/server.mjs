@@ -27,10 +27,16 @@ const oAuth2Client = new OAuth2Client(
 );
 
 // Store tokens in Firestore
+// Store tokens in Firestore
 async function storeTokensInFirestore(tokens) {
   const tokensRef = db.collection('tokens').doc('userTokens');
-  await tokensRef.set(tokens);
+  if (tokens.refresh_token) {  // Ensure refresh_token is available before storing
+    await tokensRef.set(tokens);
+  } else {
+    console.error("No refresh_token found in tokens:", tokens);
+  }
 }
+
 
 // Retrieve tokens from Firestore
 async function getTokensFromFirestore() {
@@ -40,9 +46,11 @@ async function getTokensFromFirestore() {
     console.log('No token data found in Firestore!');
     return null;
   } else {
+    console.log('Tokens retrieved from Firestore:', doc.data());
     return doc.data();
   }
 }
+
 
 // Function to refresh the access token using the refresh token
 async function refreshAccessToken(refreshToken) {
@@ -65,14 +73,22 @@ async function refreshAccessToken(refreshToken) {
 async function getValidAccessToken() {
   let tokens = await getTokensFromFirestore();
 
+  if (!tokens) {
+    throw new Error("No tokens found in Firestore.");
+  }
+
   // If no valid access token, refresh it
-  if (!tokens || !tokens.access_token || tokens.access_token === 'your-access-token') {
+  if (!tokens.access_token || tokens.access_token === 'your-access-token') {
+    if (!tokens.refresh_token) {
+      throw new Error("No refresh_token found. Cannot refresh access token.");
+    }
     console.log("No valid access token found. Refreshing token...");
-    tokens = await refreshAccessToken(tokens.refresh_token);
+    tokens.access_token = await refreshAccessToken(tokens.refresh_token);
   }
 
   return tokens.access_token;
 }
+
 
 // POST route to handle user questions
 app.post('/ask', async (req, res) => {
