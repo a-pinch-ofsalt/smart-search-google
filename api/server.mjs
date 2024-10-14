@@ -42,8 +42,16 @@ async function askVertexAI(accessToken, question) {
   });
 
   const data = await response.json();
-  return data.candidates[0]?.content?.parts[0]?.text || "No response";
+  console.log("Full API Response:", data);  // Log the response to see what's inside
+
+  // Safely access the response properties to avoid undefined errors
+  if (data.candidates && data.candidates.length > 0) {
+    return data.candidates[0]?.content?.parts[0]?.text || "No response";
+  } else {
+    throw new Error("Invalid response from API");
+  }
 }
+
 
 // OAuth2 callback route to get access token
 app.get('/oauth2callback', async (req, res) => {
