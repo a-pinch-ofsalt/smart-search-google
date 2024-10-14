@@ -105,6 +105,9 @@ app.post('/ask', async (req, res) => {
     if (!tokens.access_token) {
       tokens.access_token = await refreshAccessToken(tokens.refresh_token);
     }
+    console.log("Access Token being used:", accessToken);
+
+    
     
     const answer = await askVertexAI(tokens.access_token, req.body.question);
     
