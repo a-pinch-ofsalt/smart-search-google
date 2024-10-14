@@ -1,0 +1,8 @@
+{
+    "rewrites": [
+      { "source": "/auth", "destination": "/api/server.mjs" },
+      { "source": "/oauth2callback", "destination": "/api/server.mjs" },
+      { "source": "/ask", "destination": "/api/server.mjs" }
+    ]
+  }
+  
