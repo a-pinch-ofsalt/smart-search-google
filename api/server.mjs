@@ -12,7 +12,7 @@ app.use(express.json());
 const oAuth2Client = new OAuth2Client(
   process.env.CLIENT_ID,
   process.env.CLIENT_SECRET,
-  process.env.REDIRECT_URI || 'https://your-vercel-app.vercel.app/oauth2callback'
+  process.env.REDIRECT_URI || 'https://smart-search-google.vercel.app/oauth2callback'
 );
 
 // Get refresh token or access token from environment variables (or database)
