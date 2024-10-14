@@ -27,15 +27,16 @@ const oAuth2Client = new OAuth2Client(
 );
 
 // Store tokens in Firestore
-// Store tokens in Firestore
 async function storeTokensInFirestore(tokens) {
   const tokensRef = db.collection('tokens').doc('userTokens');
+  console.log('Tokens to be stored:', tokens);  // Log tokens to ensure they are correct
   if (tokens.refresh_token) {  // Ensure refresh_token is available before storing
     await tokensRef.set(tokens);
   } else {
     console.error("No refresh_token found in tokens:", tokens);
   }
 }
+
 
 
 // Retrieve tokens from Firestore
@@ -110,6 +111,8 @@ app.get('/oauth2callback', async (req, res) => {
   try {
     const { tokens } = await oAuth2Client.getToken(code);
     oAuth2Client.setCredentials(tokens);
+    
+    console.log("Tokens received from OAuth:", tokens);  // Log tokens to check structure
 
     // Store tokens in Firestore
     await storeTokensInFirestore(tokens);
@@ -119,6 +122,7 @@ app.get('/oauth2callback', async (req, res) => {
     res.status(500).send('Error obtaining access token: ' + error.message);
   }
 });
+
 
 // Route to start OAuth process
 app.get('/auth', (req, res) => {
