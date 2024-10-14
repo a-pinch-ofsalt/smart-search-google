@@ -105,10 +105,8 @@ app.post('/ask', async (req, res) => {
     if (!tokens.access_token) {
       tokens.access_token = await refreshAccessToken(tokens.refresh_token);
     }
-    console.log("Access Token being used:", accessToken);
+    console.log("Access Token being used:", tokens.access_token);
 
-    
-    
     const answer = await askVertexAI(tokens.access_token, req.body.question);
     
     res.status(200).json({ answer });
@@ -116,6 +114,7 @@ app.post('/ask', async (req, res) => {
     res.status(500).json({ error: `Failed to process the request: ${error.message}` });
   }
 });
+
 
 // Export the Express app for use with Vercel serverless
 export default app;
