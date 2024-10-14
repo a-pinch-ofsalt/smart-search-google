@@ -14,16 +14,36 @@ const oAuth2Client = new OAuth2Client(
   process.env.REDIRECT_URI || 'https://smart-search-google.vercel.app/oauth2callback'
 );
 
+async function getValidAccessToken() {
+  let tokens = {
+    access_token: process.env.ACCESS_TOKEN,
+    refresh_token: process.env.REFRESH_TOKEN
+  };
+
+  // Refresh access token if necessary
+  if (!tokens.access_token) {
+    console.log("No access token found. Refreshing access token...");
+    tokens.access_token = await refreshAccessToken(tokens.refresh_token);
+  }
+
+  return tokens.access_token;
+}
+
+
 // Function to refresh the access token using the refresh token
 async function refreshAccessToken(refreshToken) {
   try {
     const { tokens } = await oAuth2Client.refreshToken(refreshToken);
     oAuth2Client.setCredentials(tokens);
+    console.log('New Access Token:', tokens.access_token);
+    // Update environment variables or a database with the new access token if necessary
     return tokens.access_token;
   } catch (error) {
+    console.error("Error refreshing token:", error);
     throw new Error("Failed to refresh access token.");
   }
 }
+
 
 // Function to call Vertex AI
 async function askVertexAI(accessToken, question) {
