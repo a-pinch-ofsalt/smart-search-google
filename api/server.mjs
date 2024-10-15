@@ -15,7 +15,7 @@ const firebaseConfig = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
 // Initialize Firebase Admin SDK
 admin.initializeApp({
   credential: admin.credential.cert(firebaseConfig),
-  databaseURL: "https://your-firebase-project-id.firebaseio.com"  // Replace with your Firebase project URL
+  databaseURL: "https://vertexai-oauth-access-token.firebaseio.com"  // Replace with your Firebase project URL
 });
 
 const db = admin.firestore();
@@ -28,30 +28,37 @@ const oAuth2Client = new OAuth2Client(
 
 // Store tokens in Firestore
 async function storeTokensInFirestore(tokens) {
-  const tokensRef = db.collection('tokens').doc('userTokens');
-  console.log('Tokens to be stored:', tokens);  // Log tokens to ensure they are correct
-  if (tokens.refresh_token) {  // Ensure refresh_token is available before storing
-    await tokensRef.set(tokens);
-  } else {
-    console.error("No refresh_token found in tokens:", tokens);
+  try {
+    const tokensRef = db.collection('tokens').doc('userTokens');
+    console.log('Tokens to be stored:', tokens);  // Log tokens to ensure they are correct
+    if (tokens.refresh_token) {  // Ensure refresh_token is available before storing
+      await tokensRef.set(tokens);
+      console.log("Tokens successfully stored in Firestore.");
+    } else {
+      console.error("No refresh_token found in tokens:", tokens);
+    }
+  } catch (error) {
+    console.error("Error storing tokens in Firestore:", error);
   }
 }
-
-
 
 // Retrieve tokens from Firestore
 async function getTokensFromFirestore() {
-  const tokensRef = db.collection('tokens').doc('userTokens');
-  const doc = await tokensRef.get();
-  if (!doc.exists) {
-    console.log('No token data found in Firestore!');
+  try {
+    const tokensRef = db.collection('tokens').doc('userTokens');
+    const doc = await tokensRef.get();
+    if (!doc.exists) {
+      console.log('No token data found in Firestore!');
+      return null;
+    } else {
+      console.log('Tokens retrieved from Firestore:', doc.data());
+      return doc.data();
+    }
+  } catch (error) {
+    console.error("Error retrieving tokens from Firestore:", error);
     return null;
-  } else {
-    console.log('Tokens retrieved from Firestore:', doc.data());
-    return doc.data();
   }
 }
-
 
 // Function to refresh the access token using the refresh token
 async function refreshAccessToken(refreshToken) {
@@ -90,7 +97,6 @@ async function getValidAccessToken() {
   return tokens.access_token;
 }
 
-
 // POST route to handle user questions
 app.post('/ask', async (req, res) => {
   try {
@@ -122,7 +128,6 @@ app.get('/oauth2callback', async (req, res) => {
     res.status(500).send('Error obtaining access token: ' + error.message);
   }
 });
-
 
 // Route to start OAuth process
 app.get('/auth', (req, res) => {
