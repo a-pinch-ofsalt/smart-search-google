@@ -97,13 +97,43 @@ async function getValidAccessToken() {
   return tokens.access_token;
 }
 
+// Define the askVertexAI function to interact with Vertex AI
+async function askVertexAI(accessToken, context, questions) {
+  const url = `https://${process.env.LOCATION}-aiplatform.googleapis.com/v1beta1/projects/${process.env.PROJECT_ID}/locations/${process.env.LOCATION}/publishers/google/models/${process.env.MODEL_ID}:generateContent`;
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${accessToken}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      contents: [{ role: "user", parts: [{ text: `Context: ${context}\n\nQuestions: ${questions}` }] }],
+      tools: [{ googleSearchRetrieval: { dynamicRetrievalConfig: { mode: "MODE_DYNAMIC", dynamicThreshold: 0.7 } } }]
+    })
+  });
+
+  const data = await response.json();
+  console.log("Response from Vertex AI:", data); // Log the response to check the result
+
+  // Safely access the response and return the answer
+  if (data.candidates && data.candidates.length > 0) {
+    return data.candidates[0]?.content?.parts[0]?.text || "No response found";
+  } else {
+    throw new Error("Invalid response from Vertex AI");
+  }
+}
+
+
 // POST route to handle user questions
 app.post('/ask', async (req, res) => {
   try {
     const accessToken = await getValidAccessToken();
     console.log("Access Token being used:", accessToken);
 
-    const answer = await askVertexAI(accessToken, req.body.question);
+    const { context, questions } = req.body;
+
+    const answer = await askVertexAI(accessToken, context, questions);
 
     res.status(200).json({ answer });
   } catch (error) {
