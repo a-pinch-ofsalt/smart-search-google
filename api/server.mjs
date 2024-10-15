@@ -87,8 +87,8 @@ async function getValidAccessToken() {
 
   // If no valid access token, refresh it
   if (!tokens.access_token || tokens.access_token === 'your-access-token') {
-    if (!tokens.refresh_token) {
-      throw new Error("No refresh_token found. Cannot refresh access token.");
+    if (!tokens.access_token) {
+      throw new Error("No access_token found. Cannot refresh access token.");
     }
     console.log("No valid access token found. Refreshing token...");
     tokens.access_token = await refreshAccessToken(tokens.refresh_token);
