@@ -23,7 +23,7 @@ const db = admin.firestore();
 const oAuth2Client = new OAuth2Client(
   process.env.CLIENT_ID,
   process.env.CLIENT_SECRET,
-  process.env.REDIRECT_URI || 'https://smart-search-google.vercel.app/oauth2callback'
+  'https://smart-search-google.vercel.app/oauth2callback'
 );
 
 // Store tokens in Firestore
@@ -114,6 +114,7 @@ app.post('/ask', async (req, res) => {
 // OAuth2 callback route to get access token
 app.get('/oauth2callback', async (req, res) => {
   const code = req.query.code;
+  console.log("Got something back!")
   try {
     const { tokens } = await oAuth2Client.getToken(code);
     oAuth2Client.setCredentials(tokens);
