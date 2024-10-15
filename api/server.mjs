@@ -31,11 +31,11 @@ async function storeTokensInFirestore(tokens) {
   try {
     const tokensRef = db.collection('tokens').doc('userTokens');
     console.log('Tokens to be stored:', tokens);  // Log tokens to ensure they are correct
-    if (tokens.refresh_token) {  // Ensure refresh_token is available before storing
+    if (tokens.access_token) {  // Ensure access_token is available before storing
       await tokensRef.set(tokens);
       console.log("Tokens successfully stored in Firestore.");
     } else {
-      console.error("No refresh_token found in tokens:", tokens);
+      console.error("No access_token found in tokens:", tokens);
     }
   } catch (error) {
     console.error("Error storing tokens in Firestore:", error);
@@ -91,7 +91,7 @@ async function getValidAccessToken() {
       throw new Error("No access_token found. Cannot refresh access token.");
     }
     console.log("No valid access token found. Refreshing token...");
-    tokens.access_token = await refreshAccessToken(tokens.refresh_token);
+    tokens.access_token = await refreshAccessToken(tokens.access_token);
   }
 
   return tokens.access_token;
